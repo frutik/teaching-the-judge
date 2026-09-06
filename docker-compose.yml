@@ -34,7 +34,10 @@ services:
       retries: 5
       start_period: 10s
     environment:
-      MYSQL_DATABASE: 'db'
+      # NOTE: do NOT set MYSQL_DATABASE here. It would create an empty 'db',
+      # which makes Quepid's entrypoint think the schema is already loaded,
+      # skip db:setup, and then die on 'db:migrate:status' under 'bash -e'.
+      # Leaving it unset lets Quepid create and seed the database itself.
       MYSQL_ROOT_PASSWORD: 'password'
     ports:
       - '3306:3306'
@@ -45,7 +48,7 @@ services:
   quepid-api-quepid:
     image: o19s/quepid:8.5.0
     # build:
-    #   context: ./quepid
+    #   context: ./quepid-api-unofficial/quepid
     #   dockerfile: Dockerfile.prod
     container_name: quepid-api-quepid
     platform: linux/amd64
@@ -65,7 +68,7 @@ services:
       RAILS_ENV: "production"
       MAX_THREADS: "2"
       WEB_CONCURRENCY: "2"
-      DB_ADAPTER: "postgresql"
+#      DB_ADAPTER: "postgresql"
       RAILS_LOG_TO_STDOUT: "true"
       RAILS_SERVE_STATIC_FILES: "true"
       TC_URL: ""
@@ -84,14 +87,14 @@ services:
       QUERY_LIST_SORTABLE: "true"
       QUEPID_PROPHET_ANALYTICS: "true"
       # DATABASE_URL: "postgresql://root:password@quepid-api-postgres:5432/db"
-     DATABASE_URL: "mysql2://root:password@quepid-api-mysql:3306/db"
+      DATABASE_URL: "mysql2://root:password@quepid-api-mysql:3306/db"
       SECRET_KEY_BASE: "<secret key base>"
   quepid-api-app:
     container_name: quepid-api-app
-    image: frutik777/quepid-api-unofficial-app:v0.6.1
+    image: frutik777/quepid-api-unofficial:v0.9.5
     platform: linux/amd64
     build:
-      context: ./quepid_api
+      context: ./quepid-api-unofficial/quepid_api
       dockerfile: Dockerfile
       target: app
     env_file:
@@ -106,10 +109,10 @@ services:
     network_mode: service:quepid-api-web
   quepid-api-web:
     container_name: quepid-api-web
-    image: frutik777/quepid-api-unofficial-web:v0.6.1
+    image: frutik777/quepid-api-unofficial-web:v0.9.5
     platform: linux/amd64
     build:
-      context: ./quepid_api
+      context: ./quepid-api-unofficial/quepid_api
       dockerfile: Dockerfile
       target: web
     ports:
