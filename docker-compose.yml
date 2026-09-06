@@ -24,6 +24,19 @@ services:
       interval: 10s
       retries: 5
       start_period: 10s
+  quepid-api-postgres:
+    image: postgres:17-alpine
+    ports:
+      - 35432:5432
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=root
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   quepid-api-mysql:
     image: mysql:8.4.4
     platform: linux/amd64
@@ -124,6 +137,11 @@ services:
       - ./data/litellm/config.yaml:/app/config.yaml:ro
     env_file:
       - .env-private
+    environment:
+      DATABASE_URL: "postgresql://root:password@quepid-api-postgres:5432/litellm"
+    depends_on:
+      quepid-api-postgres:
+        condition: service_healthy
     ports:
       - '4000:4000'
     healthcheck:
