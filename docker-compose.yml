@@ -1,35 +1,4 @@
 services:
-#  quepid-api-elasticsearch:
-#    container_name: miab-elastic
-#    image: "docker.elastic.co/elasticsearch/elasticsearch:8.18.3"
-#    environment:
-#      - cluster.name=docker-cluster
-#      - bootstrap.memory_lock=true
-#      #- "ES_JAVA_OPTS=-Xms${ELASTIC_JAVA_MEMORY}m -Xmx${ELASTIC_JAVA_MEMORY}m"
-#      - discovery.type=single-node
-#      - xpack.security.transport.ssl.enabled=false
-#      - xpack.ml.enabled=false
-#      - xpack.security.enabled=false
-#      #- xpack.monitoring.enabled=false
-#      - xpack.graph.enabled=false
-#      - xpack.watcher.enabled=false
-#    ulimits:
-#      memlock:
-#        soft: -1
-#        hard: -1
-    #entrypoint: "sh /usr/share/elasticsearch/config/docker/entrypoint.sh"
-#    volumes:
-#      - ./data/elasticsearch/:/usr/share/elasticsearch/data
-      #- "./es/docker:/usr/share/elasticsearch/config/docker"
-      #- "./es/hunspell:/usr/share/elasticsearch/config/hunspell"
-      #- "./es/dictionaries:/usr/share/elasticsearch/config/dictionaries"
-#    ports:
-#      - 9200:9200
-#    healthcheck:
-#      test: [ "CMD", "curl", "-I", "http://localhost:9200/" ]
-#      interval: 10s
-#      retries: 5
-#      start_period: 10s
   quepid-api-elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.1
     container_name: es-test
@@ -55,20 +24,6 @@ services:
       interval: 10s
       retries: 5
       start_period: 10s
-  quepid-api-postgres:
-#    container_name: quepid_postgres
-    image: postgres:17-alpine
-    ports:
-      - 35432:5432
-    environment:
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_USER=root
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
   quepid-api-mysql:
     image: mysql:8.4.4
     platform: linux/amd64
@@ -88,24 +43,22 @@ services:
     volumes:
       - ./data/mysql/:/var/lib/mysql
   quepid-api-quepid:
-#    image: o19s/quepid:8.5.0
-    build:
-      context: ./quepid
-      dockerfile: Dockerfile.prod
+    image: o19s/quepid:8.5.0
+    # build:
+    #   context: ./quepid
+    #   dockerfile: Dockerfile.prod
     container_name: quepid-api-quepid
     platform: linux/amd64
     ports:
       - "3000:3000"
 #    command: ["/usr/bin/sleep", "infinity"]
     depends_on:
-      quepid-api-postgres:
-        condition: service_healthy
+      # quepid-api-postgres:
+      #   condition: service_healthy
       quepid-api-mysql:
         condition: service_healthy
       quepid-api-elasticsearch:
         condition: service_healthy
-#    volumes:
-#      - ./user.thor:/rails/lib/tasks/user.thor
     environment:
       PORT: "3000"
       RACK_ENV: "production"
@@ -130,8 +83,8 @@ services:
       EMAIL_SENDER: ""
       QUERY_LIST_SORTABLE: "true"
       QUEPID_PROPHET_ANALYTICS: "true"
-      DATABASE_URL: "postgresql://root:password@quepid-api-postgres:5432/db"
-#      DATABASE_URL: "mysql2://root:password@quepid-api-mysql:3306/db"
+      # DATABASE_URL: "postgresql://root:password@quepid-api-postgres:5432/db"
+     DATABASE_URL: "mysql2://root:password@quepid-api-mysql:3306/db"
       SECRET_KEY_BASE: "<secret key base>"
   quepid-api-app:
     container_name: quepid-api-app
