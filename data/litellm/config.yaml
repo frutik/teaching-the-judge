@@ -1,0 +1,57 @@
+# LiteLLM proxy config. Exposes an OpenAI-compatible API at :4000 so anything
+# that speaks OpenAI (the Quepid AI judge, the notebook) can reach any provider
+# by pointing llm_service_url at http://quepid-api-litellm:4000 and using
+# LITELLM_MASTER_KEY as the API key.
+model_list:
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  # Anything not named above is passed through to the provider named in the
+  # model string, e.g. "openai/o3" or "anthropic/claude-haiku-4-5".
+  - model_name: "*"
+    litellm_params:
+      model: "*"
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 600
+  num_retries: 2
+
+  # Exact-match response cache backed by S3: an identical request (same model,
+  # messages and params) is served from the bucket instead of the provider.
+  # Judging a book replays near-identical prompts a lot, so this is where the
+  # money goes.
+  #
+  # This is NOT semantic caching -- it hashes the request, it does not embed it.
+  # So the doc's semantic_cache_embedding_timeout knob does not apply here; that
+  # one only exists for the redis-semantic / valkey-semantic / qdrant-semantic
+  # backends, which need an embedding endpoint. S3 needs no embeddings at all.
+  cache: true
+  cache_params:
+    type: s3
+    s3_bucket_name: os.environ/LITELLM_S3_CACHE_BUCKET
+    s3_region_name: os.environ/LITELLM_S3_CACHE_REGION
+    s3_aws_access_key_id: os.environ/AWS_ACCESS_KEY_ID
+    s3_aws_secret_access_key: os.environ/AWS_SECRET_ACCESS_KEY
+    # Key prefix, so the bucket can hold other things too.
+    s3_path: litellm-cache
+    # 7 days, written as an object expiry on each cached response.
+    ttl: 604800
+    supported_call_types:
+      - acompletion
+      - completion
+      - aembedding
+      - embedding
+    # Uncomment for an S3-compatible store (MinIO, Cloudflare R2, Ceph).
+    # Leave it out entirely for real AWS -- an empty value breaks the client.
+    # s3_endpoint_url: os.environ/LITELLM_S3_CACHE_ENDPOINT_URL
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
