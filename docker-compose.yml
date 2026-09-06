@@ -68,7 +68,6 @@ services:
       RAILS_ENV: "production"
       MAX_THREADS: "2"
       WEB_CONCURRENCY: "2"
-#      DB_ADAPTER: "postgresql"
       RAILS_LOG_TO_STDOUT: "true"
       RAILS_SERVE_STATIC_FILES: "true"
       TC_URL: ""
@@ -86,12 +85,11 @@ services:
       EMAIL_SENDER: ""
       QUERY_LIST_SORTABLE: "true"
       QUEPID_PROPHET_ANALYTICS: "true"
-      # DATABASE_URL: "postgresql://root:password@quepid-api-postgres:5432/db"
       DATABASE_URL: "mysql2://root:password@quepid-api-mysql:3306/db"
       SECRET_KEY_BASE: "<secret key base>"
   quepid-api-app:
     container_name: quepid-api-app
-    image: frutik777/quepid-api-unofficial:v0.9.5
+#    image: frutik777/quepid-api-unofficial:v0.9.5
     platform: linux/amd64
     build:
       context: ./quepid-api-unofficial/quepid_api
@@ -109,7 +107,7 @@ services:
     network_mode: service:quepid-api-web
   quepid-api-web:
     container_name: quepid-api-web
-    image: frutik777/quepid-api-unofficial-web:v0.9.5
+#    image: frutik777/quepid-api-unofficial-web:v0.9.5
     platform: linux/amd64
     build:
       context: ./quepid-api-unofficial/quepid_api
