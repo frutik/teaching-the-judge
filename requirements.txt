@@ -1,0 +1,7 @@
+# Jupyter
+notebook
+ipykernel
+
+# Data / analysis
+pandas
+matplotlib
