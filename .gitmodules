@@ -1,0 +1,6 @@
+[submodule "esci-data"]
+	path = esci-data
+	url = https://github.com/amazon-science/esci-data.git
+[submodule "quepid-api-unofficial"]
+	path = quepid-api-unofficial
+	url = https://github.com/frutik/quepid-api-unofficial.git
