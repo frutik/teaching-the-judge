@@ -13,6 +13,32 @@ model_list:
       model: openai/gpt-4o-mini
       api_key: os.environ/OPENAI_API_KEY
 
+  # Embeddings. Same shape as a chat model -- the "openai/" prefix is what
+  # routes it; LiteLLM knows these are embedding models and serves them on
+  # POST /v1/embeddings rather than /v1/chat/completions.
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: text-embedding-3-large
+    litellm_params:
+      model: openai/text-embedding-3-large
+      api_key: os.environ/OPENAI_API_KEY
+
+  # Shorter vectors cost less to store and compare. OpenAI's v3 models support
+  # truncation natively, so this exposes a 256-dim variant of the same model
+  # alongside the full 1536-dim one above.
+  - model_name: text-embedding-3-small-256
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+      dimensions: 256
+    # model_name is not a real OpenAI id, so tell the proxy what it is --
+    # otherwise /v1/models reports mode=null for it.
+    model_info:
+      mode: embedding
+
   # Anything not named above is passed through to the provider named in the
   # model string, e.g. "openai/o3" or "anthropic/claude-haiku-4-5".
   - model_name: "*"
@@ -20,6 +46,11 @@ model_list:
       model: "*"
 
 litellm_settings:
+  # Required for the client_keys allow-list to actually bite. custom_auth
+  # short-circuits the normal auth chain, and the model-access check only runs
+  # afterwards if BOTH this and general_settings.custom_auth_run_common_checks
+  # are set. With either missing, `models` is decorative and calls go upstream.
+  enable_post_custom_auth_checks: true
   drop_params: true
   request_timeout: 600
   num_retries: 2
@@ -36,6 +67,13 @@ litellm_settings:
   cache: true
   cache_params:
     type: s3
+    # Caching is server-side and unconditional: "default_on" means the proxy
+    # caches every eligible request whether or not the caller asks. Quepid
+    # sends no cache field at all and still gets hits. The alternative,
+    # "default_off", would make it opt-in per request -- which Quepid, knowing
+    # nothing about any of this, would never do. This is litellm's own default;
+    # it is written out here so the behaviour is stated rather than inherited.
+    mode: default_on
     s3_bucket_name: os.environ/LITELLM_S3_CACHE_BUCKET
     s3_region_name: os.environ/LITELLM_S3_CACHE_REGION
     s3_aws_access_key_id: os.environ/AWS_ACCESS_KEY_ID
@@ -55,3 +93,33 @@ litellm_settings:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+
+  # Hardcoded client keys, resolved by custom_auth.py sitting next to this file
+  # ("custom_auth" = <module>.<function>, looked up relative to the config dir).
+  # Note this hook replaces the whole auth chain: it handles the master key
+  # itself, and DB-backed keys from /key/generate stop being accepted.
+  custom_auth: custom_auth.user_api_key_auth
+  # Without this the `models` allow-list below is decorative -- LiteLLM skips
+  # the access checks for custom-auth requests and the call goes upstream.
+  custom_auth_run_common_checks: true
+
+# Read by custom_auth.py. `models` is the allow-list -- [] means every model.
+# An entry's `key` may be a literal, or os.environ/NAME to keep the secret in
+# .env-private while this file stays committable.
+client_keys:
+  - alias: judge-student-notebook
+    key: sk-notebook-local-dev
+    models:
+      - gpt-4o
+      - gpt-4o-mini
+      - text-embedding-3-small
+      - text-embedding-3-small-256
+      - text-embedding-3-large
+    rpm_limit: 60
+
+  - alias: quepid-judge
+    key: sk-quepid-judge-local-dev
+    models:
+      - gpt-4o
+      - gpt-4o-mini
+    rpm_limit: 120

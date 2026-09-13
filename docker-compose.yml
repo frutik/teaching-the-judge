@@ -31,6 +31,13 @@ services:
     environment:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=root
+      # initdb refuses to run in a directory that is not empty, and a bind
+      # mount can arrive carrying lost+found or macOS metadata. Putting the
+      # cluster in a subdirectory of the mount is the postgres image's own
+      # documented answer to that.
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres/:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U root"]
       interval: 10s
@@ -132,9 +139,11 @@ services:
     image: ghcr.io/berriai/litellm:main-stable
     container_name: quepid-api-litellm
     restart: unless-stopped
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    # Whole dir, not just config.yaml: custom_auth.py must sit next to the
+    # config for LiteLLM to resolve `custom_auth: custom_auth.user_api_key_auth`.
+    command: ["--config", "/app/cfg/config.yaml", "--port", "4000"]
     volumes:
-      - ./data/litellm/config.yaml:/app/config.yaml:ro
+      - ./data/litellm:/app/cfg:ro
     env_file:
       - .env-private
     environment:
